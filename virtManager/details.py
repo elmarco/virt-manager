@@ -2152,15 +2152,16 @@ class vmmDetails(vmmGObjectUI):
                                           devobj=devobj)
 
     def config_graphics_apply(self, devobj):
-        (gtype, port,
-         tlsport, addr, passwd, keymap, gl) = self.gfxdetails.get_values()
+        (gtype, port, tlsport, listen,
+         addr, passwd, keymap, gl) = self.gfxdetails.get_values()
 
         kwargs = {}
 
         if self.edited(EDIT_GFX_PASSWD):
             kwargs["passwd"] = passwd
         if self.edited(EDIT_GFX_ADDRESS):
-            kwargs["listen"] = addr
+            kwargs["listen"] = listen
+            kwargs["addr"] = addr
         if self.edited(EDIT_GFX_KEYMAP):
             kwargs["keymap"] = keymap
         if self.edited(EDIT_GFX_PORT):

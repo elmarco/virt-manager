@@ -202,6 +202,11 @@ class VirtualGraphics(VirtualDevice):
                 self.remove_child(find_listen[0])
             else:
                 find_listen[0].address = val
+
+        if self.port is None and self.tlsPort is None and self.type == "spice":
+            self.port = -1
+            self.tlsPort = -1
+
         return val
     listen = XMLProperty("./@listen", set_converter=_set_listen)
 
@@ -219,16 +224,25 @@ class VirtualGraphics(VirtualDevice):
         for listen in self.listens:
             self.remove_child(listen)
 
+    def remove_listen_none(self):
+        for listen in self.listens:
+            if listen.type == "none":
+                self.remove_child(listen)
+
     def add_listen(self):
         obj = _GraphicsListen(self.conn)
         self.add_child(obj)
         return obj
 
+    def has_listen_none(self):
+        return len(self.listens) > 0 and self.listens[0].type == "none"
+
     def set_listen_none(self):
         self.remove_all_listens()
+        self.listen = None
         self.port = None
         self.tlsPort = None
-        self.autoport = False
+        self.autoport = None
         self.socket = None
 
         if self.conn.check_support(

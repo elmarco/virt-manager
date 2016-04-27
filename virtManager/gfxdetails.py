@@ -50,8 +50,9 @@ class vmmGraphicsDetails(vmmGObjectUI):
             "on_graphics_tlsport_auto_toggled": self._change_tlsport_auto,
             "on_graphics_use_password": self._change_password_chk,
 
+            "on_graphics_listen_type_changed": self._change_graphics_address,
             "on_graphics_password_changed": lambda ignore: self.emit("changed-password"),
-            "on_graphics_address_changed": lambda ignore: self.emit("changed-address"),
+            "on_graphics_address_changed": self._change_graphics_address,
             "on_graphics_tlsport_changed": lambda ignore: self.emit("changed-tlsport"),
             "on_graphics_port_changed": lambda ignore: self.emit("changed-port"),
             "on_graphics_keymap_changed": lambda ignore: self.emit("changed-keymap"),
@@ -77,6 +78,14 @@ class vmmGraphicsDetails(vmmGObjectUI):
         graphics_model.clear()
         graphics_model.append(["spice", _("Spice server")])
         graphics_model.append(["vnc", _("VNC server")])
+
+        graphics_listen_list = self.widget("graphics-listen-type")
+        graphics_listen_model = Gtk.ListStore(str, str)
+        graphics_listen_list.set_model(graphics_listen_model)
+        uiutil.init_combo_text_column(graphics_listen_list, 1)
+        graphics_listen_model.clear()
+        graphics_listen_model.append(["address", _("Address")])
+        graphics_listen_model.append(["none", _("None")])
 
         self.widget("graphics-address").set_model(Gtk.ListStore(str, str))
         uiutil.init_combo_text_column(self.widget("graphics-address"), 1)
@@ -123,6 +132,7 @@ class vmmGraphicsDetails(vmmGObjectUI):
         uiutil.set_grid_row_visible(self.widget("graphics-xauth"), False)
 
         self.widget("graphics-type").set_active(0)
+        self.widget("graphics-listen-type").set_active(0)
         self.widget("graphics-address").set_active(0)
         self.widget("graphics-keymap").set_active(0)
 
@@ -136,6 +146,7 @@ class vmmGraphicsDetails(vmmGObjectUI):
     def get_values(self):
         gtype = uiutil.get_list_selection(self.widget("graphics-type"))
         port, tlsport = self._get_config_graphics_ports()
+        listen = uiutil.get_list_selection(self.widget("graphics-listen-type"))
         addr = uiutil.get_list_selection(self.widget("graphics-address"))
         keymap = uiutil.get_list_selection(self.widget("graphics-keymap"))
         if keymap == "auto":
@@ -147,7 +158,7 @@ class vmmGraphicsDetails(vmmGObjectUI):
 
         gl = self.widget("graphics-opengl").get_active()
 
-        return gtype, port, tlsport, addr, passwd, keymap, gl
+        return gtype, port, tlsport, listen, addr, passwd, keymap, gl
 
     def set_dev(self, gfx):
         self.reset_state()
@@ -181,8 +192,12 @@ class vmmGraphicsDetails(vmmGObjectUI):
             use_passwd = gfx.passwd is not None
 
             set_port("graphics-port", gfx.port)
-            uiutil.set_list_selection(
-                self.widget("graphics-address"), gfx.listen)
+            if gfx.has_listen_none():
+                uiutil.set_list_selection(self.widget("graphics-listen-type"), 'none')
+            else:
+                uiutil.set_list_selection(self.widget("graphics-listen-type"), 'address')
+                uiutil.set_list_selection(
+                    self.widget("graphics-address"), gfx.listen)
             uiutil.set_list_selection(
                 self.widget("graphics-keymap"), gfx.keymap or None)
 
@@ -216,10 +231,15 @@ class vmmGraphicsDetails(vmmGObjectUI):
             "graphics-tlsport-box", "graphics-opengl"]
 
         gtype = uiutil.get_list_selection(self.widget("graphics-type"))
+        listen = uiutil.get_list_selection(self.widget("graphics-listen-type"))
+
         sdl_rows = ["graphics-xauth", "graphics-display"]
-        vnc_rows = ["graphics-password-box", "graphics-address",
-            "graphics-port-box", "graphics-keymap"]
-        spice_rows = vnc_rows[:] + ["graphics-tlsport-box"]
+        vnc_rows = ["graphics-password-box", "graphics-keymap"]
+        if listen == 'address':
+            vnc_rows.extend(["graphics-port-box", "graphics-address"])
+        spice_rows = vnc_rows[:]
+        if listen == 'address':
+            spice_rows.extend(["graphics-tlsport-box"])
         if self.conn.check_support(self.conn.SUPPORT_CONN_SPICE_GL):
             spice_rows.extend(["graphics-opengl"])
 
@@ -237,6 +257,10 @@ class vmmGraphicsDetails(vmmGObjectUI):
     def _change_graphics_type(self, ignore):
         self._show_rows_from_type()
         self.emit("changed-type")
+
+    def _change_graphics_address(self, ignore):
+        self._show_rows_from_type()
+        self.emit("changed-address")
 
     def _change_port_auto(self, ignore):
         self.widget("graphics-port-auto").set_inconsistent(False)

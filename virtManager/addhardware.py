@@ -1554,16 +1554,20 @@ class vmmAddHardware(vmmGObjectUI):
 
     def _validate_page_graphics(self):
         try:
-            (gtype, port,
-             tlsport, addr, passwd, keymap, gl) = self._gfxdetails.get_values()
+            (gtype, port, tlsport, listen,
+             addr, passwd, keymap, gl) = self._gfxdetails.get_values()
 
             self._dev = virtinst.VirtualGraphics(self.conn.get_backend())
             self._dev.type = gtype
-            self._dev.port = port
             self._dev.passwd = passwd
-            self._dev.listen = addr
-            self._dev.tlsPort = tlsport
             self._dev.gl = gl
+
+            if not listen:
+                self._dev.set_listen_none()
+            else:
+                self._dev.listen = addr
+                self._dev.port = port
+                self._dev.tlsPort = tlsport
             if keymap:
                 self._dev.keymap = keymap
         except ValueError, e:
