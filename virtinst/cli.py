@@ -2206,6 +2206,7 @@ ParserGraphics.add_arg("mouse_mode", "mouse_mode")
 ParserGraphics.add_arg("filetransfer_enable", "filetransfer_enable",
             is_onoff=True)
 ParserGraphics.add_arg("gl", "gl", is_onoff=True)
+ParserGraphics.add_arg("rendernode", "rendernode")
 
 
 ########################
